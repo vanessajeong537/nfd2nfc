@@ -1,0 +1,155 @@
+# nfd2nfc
+
+[![Homebrew](https://img.shields.io/homebrew/v/nfd2nfc)](https://formulae.brew.sh/formula/nfd2nfc)
+[![Release](https://img.shields.io/github/v/release/elgar328/nfd2nfc)](https://github.com/elgar328/nfd2nfc/releases)
+[![CI](https://github.com/elgar328/nfd2nfc/actions/workflows/ci.yml/badge.svg)](https://github.com/elgar328/nfd2nfc/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/elgar328/nfd2nfc)](https://github.com/elgar328/nfd2nfc#license)
+
+[![한국어](https://img.shields.io/badge/lang-한국어_↗-blue)](docs/README.ko.md)
+
+> [!NOTE]
+> **nfd2nfc is now on homebrew-core!** If you previously installed via the tap, see [Migration](#migration).
+
+A macOS tool that watches directories and converts NFD filenames to NFC in real time, ensuring cross-platform compatibility.
+
+## What is NFD/NFC?
+
+Unicode has two main ways to represent composed characters such as Korean Hangul, accented Latin (é, ü, ñ), Japanese kana (が, ぱ), and more:
+
+- **NFC** (Composed): One codepoint per character — `가` = `U+AC00`
+- **NFD** (Decomposed): Base + combining marks — `가` = `U+1100 U+1161`
+
+macOS stores filenames in NFD, while Windows and Linux use NFC. This mismatch causes problems when sharing files across platforms:
+
+- Hangul syllables appear as decomposed jamo (e.g., 한글 → ㅎㅏㄴㄱㅡㄹ)
+- Accented characters may render or sort incorrectly
+- Git sees identical files as untracked or modified
+- Cloud sync and archive tools fail to match paths
+
+**nfd2nfc** provides an interactive TUI, a scriptable CLI, and a background watcher service that handles conversion automatically.
+
+## Features
+
+- **Real-time monitoring** — Converts NFD filenames to NFC as soon as they appear
+- **Flexible watch paths** — Mix `watch`/`ignore` actions with `recursive`/`children` modes to control exactly which directories are monitored
+- **Manual conversion** — Convert filenames between NFD and NFC, individually or recursively
+- **Log viewer** — Review past watcher logs or follow new entries live
+- **Intuitive TUI** — Every keybinding is shown on screen, with full mouse support
+- **CLI mode** — Script and AI-agent friendly, with `--json` output and `--dry-run` previews
+
+## Home
+
+<img src="https://github.com/elgar328/nfd2nfc/releases/download/assets/home.png" alt="Home" width="750" />
+
+The Home tab displays the current watcher service status and provides controls to start, stop, or restart it.
+
+## Config
+
+<img src="https://github.com/elgar328/nfd2nfc/releases/download/assets/config.png" alt="Config" width="750" />
+
+The Config tab manages which directories the watcher monitors. Each path entry has an action (`watch` or `ignore`), mode (`recursive` or `children`), and validation status.
+
+## Logs
+
+<img src="https://github.com/elgar328/nfd2nfc/releases/download/assets/logs.png" alt="Logs" width="750" />
+
+The Logs tab lets you browse past watcher logs and follow new entries in real time. Logs are stored in macOS system logs, and retention is managed by the OS.
+
+## Browser
+
+<img src="https://github.com/elgar328/nfd2nfc/releases/download/assets/browser.png" alt="Browser" width="750" />
+
+The Browser tab lets you inspect files and directories for their Unicode normalization form and convert them directly. The watcher only picks up newly created or modified files, so use this tab to convert any existing NFD names.
+
+## CLI Mode
+
+Running `nfd2nfc` without arguments launches the TUI. Add a command to use CLI mode. Run `nfd2nfc <command> --help` for detailed options.
+
+```
+nfd2nfc status [--json]
+nfd2nfc watcher start|stop|restart
+nfd2nfc config list [--json]
+nfd2nfc config add <path> [--action watch|ignore] [--mode recursive|children] [--dry-run] [--json]
+nfd2nfc config remove <index> [--dry-run] [--json]
+nfd2nfc config sort
+nfd2nfc convert <path> [--mode name|children|recursive] [--target nfc|nfd] [--dry-run] [--json]
+nfd2nfc log show [--last 30m] [--json]
+nfd2nfc log stream [--json]
+```
+
+Example:
+
+```
+$ nfd2nfc status
+Watcher:          running
+Version:          2.1.0
+Binary:           /opt/homebrew/Cellar/nfd2nfc/2.1.0/bin/nfd2nfc
+Watcher binary:   /opt/homebrew/Cellar/nfd2nfc/2.1.0/bin/nfd2nfc-watcher
+Config:           ~/.config/nfd2nfc/config.toml
+Plist:            ~/Library/LaunchAgents/io.github.elgar328.nfd2nfc.plist
+Registered paths: 6 total (4 active, 1 overridden, 1 not found)
+Full Disk Access: granted
+Update:           up to date
+```
+
+## Limitations
+
+nfd2nfc solves the root cause of filenames breaking across operating systems — macOS storing them in NFD. However, other software (browsers, email services, cloud storage, messaging apps, archive tools, etc.) may independently convert filenames to NFD when transferring files. This is application-level behavior outside the scope of nfd2nfc.
+
+## Installation
+
+Requires [Homebrew](https://brew.sh).
+
+```bash
+brew install nfd2nfc
+```
+
+Then run it:
+
+```bash
+nfd2nfc
+```
+
+On first launch, the watcher service is automatically registered as a LaunchAgent. After that, you can start and stop it from the TUI or CLI.
+
+### Permissions
+
+If macOS repeatedly prompts for folder access when the watcher converts files, grant **Full Disk Access** to the watcher binary:
+
+1. Run `which nfd2nfc-watcher` to find the binary path
+2. Open **System Settings → Privacy & Security → Full Disk Access**
+3. If `nfd2nfc-watcher` is already listed, remove it completely (click `-`, not just toggle off)
+4. Click `+`, press `Cmd+Shift+G`, paste the path from step 1, and add it
+5. Run `nfd2nfc status` and verify that **Full Disk Access** shows `granted`
+
+After upgrading to a new version, you must re-do the steps above to grant Full Disk Access again.
+
+> **Note:** On macOS Tahoe 26.1–26.2, Full Disk Access does not take effect for command-line binaries due to a system bug. This is resolved in macOS 26.3.
+
+### Migration
+
+Starting with v2.0.7, nfd2nfc moved from the personal tap to homebrew-core. If you are using v2.0.6 or earlier, migrate with:
+
+```bash
+brew uninstall nfd2nfc
+brew untap elgar328/nfd2nfc
+brew install nfd2nfc
+```
+
+### Upgrading
+
+```bash
+brew upgrade nfd2nfc
+```
+
+If you have granted Full Disk Access, you must reconfigure it after upgrading.
+
+## Uninstallation
+
+```bash
+brew uninstall nfd2nfc
+```
+
+## License
+
+[MIT](LICENSE)
