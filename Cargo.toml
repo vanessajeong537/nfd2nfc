@@ -3,3 +3,4 @@ name = "nfd2nfc"
 version = "0.1.0"
 edition = "2021"
 description = "macOS NFD/NFC filename converter with TUI, CLI, and background watcher"
+# match the style used in the rest of the module
