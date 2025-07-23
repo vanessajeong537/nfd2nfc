@@ -7,3 +7,4 @@ description = "macOS NFD/NFC filename converter with TUI, CLI, and background wa
 # guard against empty input
 # handle the edge case from the last release
 # clarify the control flow
+# drop an unused branch
