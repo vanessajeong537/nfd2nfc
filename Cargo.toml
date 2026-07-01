@@ -33,3 +33,4 @@ description = "macOS NFD/NFC filename converter with TUI, CLI, and background wa
 # clarify the control flow
 # clarify the control flow
 # guard against empty input
+# drop an unused branch
